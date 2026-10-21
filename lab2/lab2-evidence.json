@@ -1,0 +1,697 @@
+{
+  "subject": "ml:36",
+  "history_size": 122,
+  "positive_seeds": 61,
+  "popular_head": [
+    {
+      "rank": 1,
+      "movie_id": "318",
+      "title": "Shawshank Redemption, The (1994)",
+      "score": 4.408963,
+      "reason": "全站 2577 人评分 · 平均 4.43 分"
+    },
+    {
+      "rank": 2,
+      "movie_id": "1203",
+      "title": "12 Angry Men (1957)",
+      "score": 4.217286,
+      "reason": "全站 589 人评分 · 平均 4.28 分"
+    },
+    {
+      "rank": 3,
+      "movie_id": "2019",
+      "title": "Seven Samurai (Shichinin no samurai) (1954)",
+      "score": 4.203096,
+      "reason": "全站 417 人评分 · 平均 4.28 分"
+    },
+    {
+      "rank": 4,
+      "movie_id": "527",
+      "title": "Schindler's List (1993)",
+      "score": 4.191409,
+      "reason": "全站 1877 人评分 · 平均 4.21 分"
+    },
+    {
+      "rank": 5,
+      "movie_id": "904",
+      "title": "Rear Window (1954)",
+      "score": 4.180487,
+      "reason": "全站 578 人评分 · 平均 4.24 分"
+    },
+    {
+      "rank": 6,
+      "movie_id": "195159",
+      "title": "Spider-Man: Into the Spider-Verse (2018)",
+      "score": 4.18045,
+      "reason": "全站 229 人评分 · 平均 4.32 分"
+    },
+    {
+      "rank": 7,
+      "movie_id": "6016",
+      "title": "City of God (Cidade de Deus) (2002)",
+      "score": 4.172121,
+      "reason": "全站 655 人评分 · 平均 4.22 分"
+    },
+    {
+      "rank": 8,
+      "movie_id": "750",
+      "title": "Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb (1964)",
+      "score": 4.162704,
+      "reason": "全站 788 人评分 · 平均 4.20 分"
+    },
+    {
+      "rank": 9,
+      "movie_id": "202439",
+      "title": "Parasite (2019)",
+      "score": 4.162103,
+      "reason": "全站 276 人评分 · 平均 4.28 分"
+    },
+    {
+      "rank": 10,
+      "movie_id": "5618",
+      "title": "Spirited Away (Sen to Chihiro no kamikakushi) (2001)",
+      "score": 4.160877,
+      "reason": "全站 869 人评分 · 平均 4.20 分"
+    }
+  ],
+  "content": [
+    {
+      "rank": 1,
+      "movie_id": "78",
+      "title": "Crossing Guard, The (1995)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 2,
+      "movie_id": "349",
+      "title": "Clear and Present Danger (1994)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 3,
+      "movie_id": "996",
+      "title": "Last Man Standing (1996)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 4,
+      "movie_id": "1218",
+      "title": "Killer, The (Die xue shuang xiong) (1989)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 5,
+      "movie_id": "1573",
+      "title": "Face/Off (1997)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 6,
+      "movie_id": "1589",
+      "title": "Cop Land (1997)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 7,
+      "movie_id": "2540",
+      "title": "Corruptor, The (1999)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 8,
+      "movie_id": "2881",
+      "title": "Double Jeopardy (1999)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 9,
+      "movie_id": "3256",
+      "title": "Patriot Games (1992)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    },
+    {
+      "rank": 10,
+      "movie_id": "3265",
+      "title": "Hard-Boiled (Lat sau san taam) (1992)",
+      "genres": [
+        "Action",
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "score": 0.906577,
+      "reasons": [
+        "偏好类型：Drama、Thriller、Crime"
+      ]
+    }
+  ],
+  "itemcf": [
+    {
+      "rank": 1,
+      "movie_id": "4226",
+      "title": "Memento (2000)",
+      "genres": [
+        "Mystery",
+        "Thriller"
+      ],
+      "score": 12.553565,
+      "reasons": [
+        "因你看过《Fight Club (1999)》",
+        "因你看过《Pulp Fiction (1994)》"
+      ]
+    },
+    {
+      "rank": 2,
+      "movie_id": "48780",
+      "title": "Prestige, The (2006)",
+      "genres": [
+        "Drama",
+        "Mystery",
+        "Sci-Fi",
+        "Thriller"
+      ],
+      "score": 8.807498,
+      "reasons": [
+        "因你看过《Inception (2010)》",
+        "因你看过《Gone Girl (2014)》"
+      ]
+    },
+    {
+      "rank": 3,
+      "movie_id": "7361",
+      "title": "Eternal Sunshine of the Spotless Mind (2004)",
+      "genres": [
+        "Drama",
+        "Romance",
+        "Sci-Fi"
+      ],
+      "score": 7.919036,
+      "reasons": [
+        "因你看过《Fight Club (1999)》",
+        "因你看过《No Country for Old Men (2007)》"
+      ]
+    },
+    {
+      "rank": 4,
+      "movie_id": "318",
+      "title": "Shawshank Redemption, The (1994)",
+      "genres": [
+        "Crime",
+        "Drama"
+      ],
+      "score": 7.632171,
+      "reasons": [
+        "因你看过《Pulp Fiction (1994)》",
+        "因你看过《Fight Club (1999)》"
+      ]
+    },
+    {
+      "rank": 5,
+      "movie_id": "91529",
+      "title": "Dark Knight Rises, The (2012)",
+      "genres": [
+        "Action",
+        "Adventure",
+        "Crime",
+        "IMAX"
+      ],
+      "score": 6.899119,
+      "reasons": [
+        "因你看过《Inception (2010)》",
+        "因你看过《Dark Knight, The (2008)》"
+      ]
+    },
+    {
+      "rank": 6,
+      "movie_id": "1258",
+      "title": "Shining, The (1980)",
+      "genres": [
+        "Horror"
+      ],
+      "score": 6.604974,
+      "reasons": [
+        "因你看过《Reservoir Dogs (1992)》",
+        "因你看过《Apocalypse Now (1979)》"
+      ]
+    },
+    {
+      "rank": 7,
+      "movie_id": "47",
+      "title": "Seven (a.k.a. Se7en) (1995)",
+      "genres": [
+        "Mystery",
+        "Thriller"
+      ],
+      "score": 6.593345,
+      "reasons": [
+        "因你看过《Pulp Fiction (1994)》",
+        "因你看过《Fight Club (1999)》"
+      ]
+    },
+    {
+      "rank": 8,
+      "movie_id": "541",
+      "title": "Blade Runner (1982)",
+      "genres": [
+        "Action",
+        "Sci-Fi",
+        "Thriller"
+      ],
+      "score": 6.496069,
+      "reasons": [
+        "因你看过《Apocalypse Now (1979)》",
+        "因你看过《Pulp Fiction (1994)》"
+      ]
+    },
+    {
+      "rank": 9,
+      "movie_id": "2329",
+      "title": "American History X (1998)",
+      "genres": [
+        "Crime",
+        "Drama"
+      ],
+      "score": 6.454016,
+      "reasons": [
+        "因你看过《Fight Club (1999)》",
+        "因你看过《Pulp Fiction (1994)》"
+      ]
+    },
+    {
+      "rank": 10,
+      "movie_id": "109487",
+      "title": "Interstellar (2014)",
+      "genres": [
+        "Sci-Fi",
+        "IMAX"
+      ],
+      "score": 5.839009,
+      "reasons": [
+        "因你看过《Inception (2010)》",
+        "因你看过《Gone Girl (2014)》"
+      ]
+    }
+  ],
+  "overlap_at_10": 0,
+  "overlap_ids": [],
+  "itemcf_duplicate": false,
+  "itemcf_seen_leak": [],
+  "itemcf_all_in_catalog": true,
+  "case": {
+    "candidate_id": "4226",
+    "candidate_title": "Memento (2000)",
+    "candidate_genres": [
+      "Mystery",
+      "Thriller"
+    ],
+    "contributing_seeds": [
+      {
+        "seed_movie_id": "2959",
+        "seed_title": "Fight Club (1999)",
+        "seed_rating": 4.5,
+        "similarity": 0.559483,
+        "contribution": 0.839224
+      },
+      {
+        "seed_movie_id": "296",
+        "seed_title": "Pulp Fiction (1994)",
+        "seed_rating": 4.5,
+        "similarity": 0.46604,
+        "contribution": 0.69906
+      },
+      {
+        "seed_movie_id": "1089",
+        "seed_title": "Reservoir Dogs (1992)",
+        "seed_rating": 4.5,
+        "similarity": 0.440362,
+        "contribution": 0.660543
+      }
+    ],
+    "total_contributing_seeds": 10
+  },
+  "cold_start": [
+    {
+      "scenario": "新账号 · 零评分零收藏",
+      "subject": "app:900001",
+      "strategy": "非个性化热门榜",
+      "model_version": "coldstart-v1",
+      "items": [
+        {
+          "rank": 1,
+          "movie_id": "318",
+          "title": "Shawshank Redemption, The (1994)",
+          "genres": [
+            "Crime",
+            "Drama"
+          ],
+          "score": 4.408963,
+          "reasons": [
+            "热门榜（非个性化）：全站 2577 人评分，平均 4.43 分"
+          ]
+        },
+        {
+          "rank": 2,
+          "movie_id": "858",
+          "title": "Godfather, The (1972)",
+          "genres": [
+            "Crime",
+            "Drama"
+          ],
+          "score": 4.27397,
+          "reasons": [
+            "热门榜（非个性化）：全站 1654 人评分，平均 4.30 分"
+          ]
+        },
+        {
+          "rank": 3,
+          "movie_id": "50",
+          "title": "Usual Suspects, The (1995)",
+          "genres": [
+            "Crime",
+            "Mystery",
+            "Thriller"
+          ],
+          "score": 4.244224,
+          "reasons": [
+            "热门榜（非个性化）：全站 1708 人评分，平均 4.26 分"
+          ]
+        },
+        {
+          "rank": 4,
+          "movie_id": "1203",
+          "title": "12 Angry Men (1957)",
+          "genres": [
+            "Drama"
+          ],
+          "score": 4.217286,
+          "reasons": [
+            "热门榜（非个性化）：全站 589 人评分，平均 4.28 分"
+          ]
+        },
+        {
+          "rank": 5,
+          "movie_id": "1221",
+          "title": "Godfather: Part II, The (1974)",
+          "genres": [
+            "Crime",
+            "Drama"
+          ],
+          "score": 4.216459,
+          "reasons": [
+            "热门榜（非个性化）：全站 1095 人评分，平均 4.25 分"
+          ]
+        }
+      ],
+      "movie_ids": [
+        "318",
+        "858",
+        "50",
+        "1203",
+        "1221"
+      ]
+    },
+    {
+      "scenario": "新账号 · 只收藏 Toy Story",
+      "subject": "app:900002",
+      "strategy": "偏好推荐（可选信号）",
+      "model_version": "coldstart-v1",
+      "items": [
+        {
+          "rank": 1,
+          "movie_id": "3114",
+          "title": "Toy Story 2 (1999)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.876716,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（0 条 ≥3.5 分评分 + 1 个收藏）"
+          ]
+        },
+        {
+          "rank": 2,
+          "movie_id": "4886",
+          "title": "Monsters, Inc. (2001)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.869544,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（0 条 ≥3.5 分评分 + 1 个收藏）"
+          ]
+        },
+        {
+          "rank": 3,
+          "movie_id": "225173",
+          "title": "Soul (2020)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.855932,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（0 条 ≥3.5 分评分 + 1 个收藏）"
+          ]
+        },
+        {
+          "rank": 4,
+          "movie_id": "166461",
+          "title": "Moana (2016)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.855287,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（0 条 ≥3.5 分评分 + 1 个收藏）"
+          ]
+        },
+        {
+          "rank": 5,
+          "movie_id": "2294",
+          "title": "Antz (1998)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.85,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（0 条 ≥3.5 分评分 + 1 个收藏）"
+          ]
+        }
+      ],
+      "movie_ids": [
+        "3114",
+        "4886",
+        "225173",
+        "166461",
+        "2294"
+      ]
+    },
+    {
+      "scenario": "新账号 · 3 条评分（Toy Story 1/2 + Jurassic Park）",
+      "subject": "app:900003",
+      "strategy": "偏好推荐（可选信号）",
+      "model_version": "coldstart-v1",
+      "items": [
+        {
+          "rank": 1,
+          "movie_id": "4886",
+          "title": "Monsters, Inc. (2001)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.846889,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（3 条 ≥3.5 分评分 + 0 个收藏）"
+          ]
+        },
+        {
+          "rank": 2,
+          "movie_id": "225173",
+          "title": "Soul (2020)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.833277,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（3 条 ≥3.5 分评分 + 0 个收藏）"
+          ]
+        },
+        {
+          "rank": 3,
+          "movie_id": "166461",
+          "title": "Moana (2016)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.832632,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（3 条 ≥3.5 分评分 + 0 个收藏）"
+          ]
+        },
+        {
+          "rank": 4,
+          "movie_id": "2294",
+          "title": "Antz (1998)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.827345,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（3 条 ≥3.5 分评分 + 0 个收藏）"
+          ]
+        },
+        {
+          "rank": 5,
+          "movie_id": "3754",
+          "title": "Adventures of Rocky and Bullwinkle, The (2000)",
+          "genres": [
+            "Adventure",
+            "Animation",
+            "Children",
+            "Comedy",
+            "Fantasy"
+          ],
+          "score": 0.827345,
+          "reasons": [
+            "偏好类型：Adventure、Animation、Children（3 条 ≥3.5 分评分 + 0 个收藏）"
+          ]
+        }
+      ],
+      "movie_ids": [
+        "4886",
+        "225173",
+        "166461",
+        "2294",
+        "3754"
+      ]
+    }
+  ],
+  "cold_start_changed_after_favorite": [
+    "2294",
+    "3114",
+    "4886",
+    "166461",
+    "225173"
+  ],
+  "artifact_stats": {
+    "catalog": 8459,
+    "itemcf_items_with_neighbours": 7305,
+    "popular_pool": 500
+  }
+}

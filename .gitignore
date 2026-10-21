@@ -66,3 +66,6 @@ ibdata*
 *.h5
 *.pt
 *.onnx
+
+# Local offline runtime settings
+deployment/offline/runtime.env

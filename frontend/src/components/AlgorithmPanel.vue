@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onScopeDispose, ref, watch } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import { Connection } from '@element-plus/icons-vue'
 import http, { ApiError } from '../api'
 import StatePanel from './StatePanel.vue'
@@ -8,6 +8,26 @@ const props = withDefaults(defineProps<{ endpoint: string | null; label: string;
 const loading = ref(false), error = ref<unknown>(null), unavailable = ref(false)
 const result = ref<AlgorithmResult | null>(null)
 const movieMap = ref<Record<string, Movie>>({})
+// 每个算法都必须说明"结果来自什么数据"，避免把热门榜当成个性化结果。
+const DATA_NOTE: Record<string, string> = {
+  content: '依据：电影类型 + 你自己的评分，不使用其他人的行为',
+  itemcf: '依据：全站用户评分中共现的电影 + 你自己的评分；已排除你看过的电影',
+  popular: '依据：全站评分人数与平均分（贝叶斯平滑），与个人偏好无关',
+  cold_start: '零评分零收藏时展示全站热门榜；产生收藏或 ≥3.5 分评分后切换为你的类型偏好',
+  als: '依据：隐语义因子分解',
+}
+const nonPersonalized = computed(() => {
+  const first = result.value?.items?.[0]?.recall_sources?.[0] || ''
+  return result.value?.algorithm === 'cold_start' && first.includes('非个性化')
+})
+const strategy = computed(() => {
+  const algorithm = result.value?.algorithm || ''
+  if (algorithm === 'cold_start') return nonPersonalized.value ? '冷启动 · 热门兜底（非个性化）' : '冷启动 · 基于你的偏好'
+  if (algorithm === 'popular') return '热门榜 · 非个性化'
+  if (algorithm === 'itemcf') return 'ItemCF · 物品协同过滤'
+  if (algorithm === 'content') return '内容推荐 · 类型画像'
+  return algorithm
+})
 let run = 0
 onScopeDispose(() => { run++ })
 async function loadMovies(movieIds: string[]) {
@@ -53,6 +73,8 @@ watch(() => props.endpoint, load, { immediate: true })
         <RouterLink v-if="!endpoint && emptySubject === '登录后体验'" class="text-link" to="/login">前往登录 →</RouterLink>
       </div>
       <div v-else-if="result" class="recommendation-results">
+        <div class="result-strategy"><span class="status-pill">{{ strategy }}</span><span class="small-label">{{ result.algorithm }}</span></div>
+        <p class="strategy-note">{{ DATA_NOTE[result.algorithm] || '依据：算法模型输出' }}<template v-if="nonPersonalized">。当前账号还没有评分或收藏，这里展示的是全站热门榜，不是个性化推荐。</template></p>
         <div class="result-meta"><span class="model-version">模型版本 {{ result.model_version }}</span><span class="dataset-version">{{ result.dataset_version }}</span></div>
         <p v-if="!result.items.length" class="empty-hint">本次没有推荐结果。</p>
         <ol v-else class="rec-list">
@@ -64,6 +86,7 @@ watch(() => props.endpoint, load, { immediate: true })
                 <span v-if="movieMap[item.movie_id]?.genres?.length" class="rec-genres">{{ movieMap[item.movie_id].genres.slice(0, 3).join(' · ') }}</span>
                 <span v-if="item.score !== null" class="rec-score">分数 {{ Number(item.score).toFixed(4) }}</span>
               </div>
+              <span v-if="item.recall_sources?.length" class="rec-reason">{{ item.recall_sources[0] }}</span>
             </div>
           </li>
         </ol>
@@ -71,3 +94,8 @@ watch(() => props.endpoint, load, { immediate: true })
     </StatePanel>
   </section>
 </template>
+<style scoped>
+.result-strategy { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; flex-wrap: wrap; }
+.strategy-note { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 0 0 10px; }
+.rec-reason { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 100px; background: var(--accent-tint); color: var(--accent); font-size: 11px; line-height: 1.6; }
+</style>

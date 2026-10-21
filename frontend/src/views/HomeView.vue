@@ -83,8 +83,10 @@ onMounted(fetchMovies)
         </div>
         <RouterLink to="/experiments" class="text-link">查看实验室 <el-icon><ArrowRight /></el-icon></RouterLink>
       </div>
+      <p class="cold-hint">新账号还没有评分时会看到明确标注的<strong>全站热门榜（非个性化）</strong>；收藏或评分任意一部电影后，冷启动入口会改用你的类型偏好重新排序。</p>
       <div class="rec-grid">
         <AlgorithmPanel label="内容推荐" :endpoint="auth.account ? '/me/recommendations/content' : null" />
+        <AlgorithmPanel label="新用户冷启动" :endpoint="auth.account ? '/me/recommendations/cold_start' : null" />
         <AlgorithmPanel label="热门推荐" :endpoint="auth.account ? '/me/recommendations/popular' : null" />
       </div>
     </section>
@@ -298,9 +300,11 @@ onMounted(fetchMovies)
 .feature-text span { font-size: 12px; color: var(--muted); }
 
 .recommendation-section { margin-top: 50px; }
+.cold-hint { font-size: 13px; line-height: 1.8; color: var(--muted); margin: 0 0 16px; }
+.cold-hint strong { color: var(--accent); font-weight: 500; }
 .rec-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -311,6 +315,7 @@ onMounted(fetchMovies)
   .hero-stats { gap: 18px; }
   .stat-item strong { font-size: 20px; }
   .feature-strip { grid-template-columns: repeat(2, 1fr); }
+  .rec-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 780px) {
   .hero-content {

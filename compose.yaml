@@ -90,6 +90,11 @@ services:
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
+    volumes:
+      - type: bind
+        source: ./frontend/dist
+        target: /usr/share/nginx/html
+        read_only: true
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/nginx-health]
       interval: 15s
@@ -125,4 +130,3 @@ secrets:
     file: ${COURSE_SECRET_DIR:-./deployment/private}/app-password
   jwt_secret:
     file: ${COURSE_SECRET_DIR:-./deployment/private}/jwt-secret
-#（注：内容由AI生成）
