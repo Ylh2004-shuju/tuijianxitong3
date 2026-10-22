@@ -15,6 +15,12 @@ export interface AlgorithmResult {
   items: { movie_id: string; rank: number; algorithm: string; model_version: string; score: number | null
     recall_sources?: string[] | null; recall_ranks?: Record<string, number> | null }[]
 }
+// 实验四 S4：大模型个性化推荐解释（后端校验过证据后才能返回）
+export interface Explanation {
+  subject_key: string; algorithm: string; model_version: string; movie_id: string; rank: number
+  reason: string; evidence: string[]; evidence_detail: Record<string, string>
+  llm_model: string; generated_at: string; cached: boolean
+}
 // 实验三统一协议离线评价：validation 分区 Precision@10 / Recall@10
 export interface EvaluationRow {
   algorithm: string; model_version: string

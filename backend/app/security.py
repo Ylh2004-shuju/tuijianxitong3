@@ -97,6 +97,16 @@ def current_actor(request: Request) -> Actor:
 ActorDependency = Annotated[Actor, Depends(current_actor)]
 
 
+def optional_actor(request: Request) -> Actor | None:
+    """实验四 S4 用：解释接口对 MovieLens 历史用户开放，未登录时返回 None 而不是 401。"""
+    try:
+        return current_actor(request)
+    except APIError as exc:
+        if exc.status == 401:
+            return None
+        raise
+
+
 @contextmanager
 def authenticated_write(request: Request, actor: Actor) -> Iterator[Connection]:
     # Lock identity and recheck inside the write transaction to order concurrent logout/writes.

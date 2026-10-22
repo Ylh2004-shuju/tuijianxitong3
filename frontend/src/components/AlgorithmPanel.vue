@@ -3,15 +3,34 @@ import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { Connection } from '@element-plus/icons-vue'
 import http, { ApiError } from '../api'
 import StatePanel from './StatePanel.vue'
-import type { AlgorithmResult, Movie } from '../types'
+import type { AlgorithmResult, Explanation, Movie } from '../types'
 import { useEvaluation } from '../composables/useEvaluation'
-const props = withDefaults(defineProps<{ endpoint: string | null; label: string; emptySubject?: string }>(), { emptySubject: '登录后体验' })
+import { useExplanation } from '../composables/useExplanation'
+import { useAuth } from '../stores/auth'
+const props = withDefaults(defineProps<{ endpoint: string | null; label: string; emptySubject?: string; subject?: string }>(), { emptySubject: '登录后体验', subject: '' })
 const loading = ref(false), error = ref<unknown>(null), unavailable = ref(false)
 const result = ref<AlgorithmResult | null>(null)
 const movieMap = ref<Record<string, Movie>>({})
 // 该算法的离线准确率（统一协议评价，validation 分区 Top-10）
 const { payload, load: loadEvaluation, metricsFor } = useEvaluation()
-onMounted(() => { void loadEvaluation() })
+// 实验四 S4：大模型解释入口只在后端真的配了密钥时出现
+const auth = useAuth()
+const { configured: llmReady, loadStatus: loadLlmStatus, explain } = useExplanation()
+const explanations = ref<Record<string, { loading: boolean; data: Explanation | null; message: string }>>({})
+const explainSubject = computed(() => props.subject || auth.account?.subject_key || '')
+onMounted(() => { void loadEvaluation(); void loadLlmStatus() })
+async function toggleExplanation(movieId: string) {
+  const current = explanations.value[movieId]
+  if (current?.data || current?.message) { delete explanations.value[movieId]; return }
+  explanations.value[movieId] = { loading: true, data: null, message: '' }
+  try {
+    const data = await explain(explainSubject.value, algorithmKey.value, movieId)
+    explanations.value[movieId] = { loading: false, data, message: '' }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '暂时无法生成解释，请稍后重试'
+    explanations.value[movieId] = { loading: false, data: null, message }
+  }
+}
 const algorithmKey = computed(() => {
   if (result.value?.algorithm) return result.value.algorithm
   const matched = props.endpoint?.match(/\/recommendations\/([a-z_]+)/)
@@ -79,6 +98,8 @@ async function load() {
   } finally { if (seq === run) loading.value = false }
 }
 watch(() => props.endpoint, load, { immediate: true })
+// 换观众/换算法后，上一批解释不再适用
+watch(() => [props.endpoint, explainSubject.value], () => { explanations.value = {} })
 </script>
 <template>
   <section class="algorithm-panel" :aria-label="label">
@@ -118,6 +139,23 @@ watch(() => props.endpoint, load, { immediate: true })
                   {{ ALGO_NAMES[name as string] || name }} <strong>#{{ position }}</strong>
                 </span>
               </div>
+              <div v-if="llmReady && explainSubject" class="explain-row">
+                <button type="button" class="explain-toggle" :disabled="explanations[item.movie_id]?.loading"
+                  @click="toggleExplanation(item.movie_id)">
+                  {{ explanations[item.movie_id]?.loading ? '正在生成解释…'
+                    : (explanations[item.movie_id]?.data || explanations[item.movie_id]?.message ? '收起解释' : 'AI 解释为什么推荐') }}
+                </button>
+                <div v-if="explanations[item.movie_id]?.data" class="explain-box" aria-live="polite">
+                  <p class="explain-reason">{{ explanations[item.movie_id].data!.reason }}</p>
+                  <ul class="explain-evidence">
+                    <li v-for="key in explanations[item.movie_id].data!.evidence" :key="key">
+                      {{ explanations[item.movie_id].data!.evidence_detail[key] }}
+                    </li>
+                  </ul>
+                  <p class="explain-foot">由大模型 {{ explanations[item.movie_id].data!.llm_model }} 依据上述证据生成 · {{ algorithmKey }} 模型 {{ explanations[item.movie_id].data!.model_version }}</p>
+                </div>
+                <p v-else-if="explanations[item.movie_id]?.message" class="explain-error">{{ explanations[item.movie_id].message }}</p>
+              </div>
             </div>
           </li>
         </ol>
@@ -139,4 +177,15 @@ watch(() => props.endpoint, load, { immediate: true })
 .source-label { color: var(--muted); font-size: 11px; }
 .source-chip { padding: 1px 8px; border: 1px solid var(--border); border-radius: 100px; font-size: 11px; line-height: 1.6; color: var(--muted); }
 .source-chip strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+/* 实验四 S4：大模型解释 */
+.explain-row { margin-top: 8px; }
+.explain-toggle { padding: 2px 10px; border: 1px solid var(--border); border-radius: 100px; background: transparent; color: var(--accent); font-size: 11px; line-height: 1.8; cursor: pointer; }
+.explain-toggle:hover:not(:disabled) { background: var(--accent-tint); }
+.explain-toggle:disabled { color: var(--muted); cursor: progress; }
+.explain-box { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--border); border-left: 2px solid var(--accent); border-radius: 8px; background: var(--surface); }
+.explain-reason { margin: 0; font-size: 13px; line-height: 1.9; color: var(--text); }
+.explain-evidence { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.9; }
+.explain-evidence li { list-style: disc; }
+.explain-foot { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.explain-error { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
 </style>

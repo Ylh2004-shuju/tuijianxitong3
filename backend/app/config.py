@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     db_socket: str | None = None
     db_ssl_ca: str | None = None
     manifest_path: Path = ROOT / "data/packages" / DATASET / "manifest.json"
+    # 实验四 S4：大模型个性化推荐解释。留空则该功能如实返回 503，不伪造解释。
+    llm_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    llm_model: str = "qwen-plus"
+    llm_api_key: SecretStr | None = None
+    llm_timeout: float = Field(default=60.0, ge=5, le=300)
+
+    @model_validator(mode="after")
+    def blank_llm_key_is_none(self) -> "Settings":
+        if self.llm_api_key is not None and not self.llm_api_key.get_secret_value().strip():
+            object.__setattr__(self, "llm_api_key", None)
+        return self
 
     @model_validator(mode="after")
     def secure_settings(self) -> "Settings":

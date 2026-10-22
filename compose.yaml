@@ -46,6 +46,11 @@ services:
       APP_DB_NAME: rec_course_v3_fcfb9a195a_business
       APP_DB_USER: course_app
       APP_ENV_FILE: /dev/null
+      # 实验四 S4：大模型个性化推荐解释。密钥只存在于本机 .env（已 gitignore），
+      # 由 compose 注入容器环境变量；为空时接口如实返回 503，不会伪造解释。
+      APP_LLM_API_KEY: ${APP_LLM_API_KEY:-}
+      APP_LLM_BASE_URL: ${APP_LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      APP_LLM_MODEL: ${APP_LLM_MODEL:-qwen-plus}
     secrets: [app_password, jwt_secret]
     volumes:
       - *package
