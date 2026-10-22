@@ -228,6 +228,35 @@ def write_manifest(directory: Path, algorithm: str, model_version: str, artifact
     (directory / filename).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def build_fusion_config(models_root: Path, k: int = 60, depth: int = 10,
+                        weights: dict[str, float] | None = None) -> dict:
+    """实验四 S1：RRF 融合的配置文件（记录成员版本，便于复核"融合了什么"）。"""
+    members = {
+        "popular": ("popular-v1", "manifest.json"),
+        "content": ("content", "model_manifest.json"),
+        "itemcf": ("itemcf-v1", "manifest.json"),
+        "als": ("als-v1", "manifest.json"),
+    }
+    versions = {}
+    for name, (directory, filename) in members.items():
+        path = models_root / directory / filename
+        try:
+            versions[name] = json.loads(path.read_text(encoding="utf-8"))["model_version"]
+        except (OSError, KeyError, ValueError):
+            versions[name] = "unknown"
+    return {
+        "model_version": "fusion-rrf-v1",
+        "method": "weighted reciprocal rank fusion",
+        "formula": "score(d) = sum_a  w_a / (k + rank_a(d))",
+        "k": k,
+        "depth": depth,
+        "weights": weights or {name: 1.0 for name in members},
+        "members": list(members),
+        "member_model_versions": versions,
+        "score_normalization": "divide by the highest fused score -> (0, 1]",
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--min-rating-count", type=int, default=100, help="热门榜最低评分数")
@@ -237,8 +266,9 @@ def main() -> int:
     parser.add_argument("--min-cooccurrence", type=int, default=3, help="物品共现最低共同用户数")
     parser.add_argument("--positive", type=float, default=4.0, help="正反馈评分阈值")
     parser.add_argument("--chunk", type=int, default=250, help="相似度分块大小")
-    parser.add_argument("--only", nargs="*", default=["popular", "itemcf", "coldstart", "content"],
-                        choices=["popular", "itemcf", "coldstart", "content"],
+    parser.add_argument("--only", nargs="*",
+                        default=["popular", "itemcf", "coldstart", "content", "fusion"],
+                        choices=["popular", "itemcf", "coldstart", "content", "fusion"],
                         help="只重建指定模型（默认全部）")
     args = parser.parse_args()
     targets = set(args.only)
@@ -344,6 +374,25 @@ def main() -> int:
         }, package_manifest, filename="model_manifest.json")
         print(f"content: {features['movies_with_features']} movies with exposure prior "
               f"(max {features['max_count']} ratings)")
+
+    # ----------------------------------------------------------------- fusion
+    if "fusion" in targets:
+        fusion_dir = MODELS / "fusion-v1"
+        fusion_dir.mkdir(parents=True, exist_ok=True)
+        config = build_fusion_config(MODELS, k=60, depth=10)
+        config_path = fusion_dir / "fusion_config.json"
+        config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        write_manifest(fusion_dir, "fusion", config["model_version"], {
+            "fusion_config.json": sha256(config_path),
+        }, {
+            "method": config["method"],
+            "k": config["k"],
+            "candidate_depth": config["depth"],
+            "members": config["members"],
+            "member_model_versions": config["member_model_versions"],
+            "weights": config["weights"],
+        }, package_manifest)
+        print(f"fusion: RRF k={config['k']} depth={config['depth']} members={config['members']}")
 
     return 0
 

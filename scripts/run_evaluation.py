@@ -41,6 +41,10 @@ PARTITION = "validation"
 POSITIVE = 4.0
 TOP_K = 10
 RANK, REG, ITERS, SEED = 16, 0.1, 15, 42
+# 实验四 S1：RRF 融合的成员、常数与候选深度（与 recommender/student/fusion.py 一致）
+FUSION_MEMBERS = ("popular", "content", "itemcf", "als")
+FUSION_K, FUSION_DEPTH = 60, 10
+FUSION_MODEL_VERSION = "fusion-rrf-v1"
 
 from recommender.data import FrozenData  # noqa: E402
 from recommender import evaluation as ev  # noqa: E402
@@ -165,6 +169,28 @@ def build_models(data: FrozenData, train_rows: list[dict]) -> dict[str, dict]:
     write_manifest(itemcf_dir, "itemcf", "itemcf-cosine-eval-v1", artifacts_i,
                    {"similarity": "cosine over binary co-occurrence of ratings>=4.0",
                     "min_cooccurrence": 3, "max_neighbours": 30, "positive_threshold": POSITIVE})
+    # --- fusion（实验四 S1）：不训练模型，只记录 RRF 配置与成员版本 ---
+    fusion_dir = EVAL_DIR / "fusion-v1"
+    fusion_dir.mkdir(parents=True, exist_ok=True)
+    fusion_config = {
+        "model_version": FUSION_MODEL_VERSION,
+        "method": "weighted reciprocal rank fusion",
+        "formula": "score(d) = sum_a  w_a / (k + rank_a(d))",
+        "k": FUSION_K, "depth": FUSION_DEPTH,
+        "members": list(FUSION_MEMBERS),
+        "weights": {name: 1.0 for name in FUSION_MEMBERS},
+        "score_normalization": "divide by the highest fused score -> (0, 1]",
+    }
+    fusion_path = fusion_dir / "fusion_config.json"
+    fusion_path.write_text(json.dumps(fusion_config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    fusion_sha = sha256(fusion_path)
+    write_manifest(fusion_dir, "fusion", FUSION_MODEL_VERSION, {"fusion_config.json": fusion_sha},
+                   {"method": fusion_config["method"], "k": FUSION_K, "candidate_depth": FUSION_DEPTH,
+                    "members": list(FUSION_MEMBERS), "weights": fusion_config["weights"],
+                    "member_model_versions": {"popular": "popular-positive-mmr-eval-v3",
+                                              "content": "content-feature-eval-v2",
+                                              "itemcf": "itemcf-cosine-eval-v1",
+                                              "als": als_version}})
     return {"popular_top": top, "prior": prior, "als_version": als_version}
 
 
@@ -188,7 +214,7 @@ def dto(algorithm: str, version: str, items: list[tuple[str, float, list[str]]])
     }
 
 
-ALL_ALGORITHMS = ["popular", "content", "itemcf", "als"]
+ALL_ALGORITHMS = ["popular", "content", "itemcf", "als", "fusion"]
 
 
 def main() -> None:
@@ -262,15 +288,16 @@ def main() -> None:
 
     popular_top = built["popular_top"]
     versions = {"popular": "popular-positive-mmr-eval-v3", "content": "content-feature-eval-v2",
-                "itemcf": "itemcf-cosine-eval-v1", "als": built["als_version"]}
+                "itemcf": "itemcf-cosine-eval-v1", "als": built["als_version"],
+                "fusion": FUSION_MODEL_VERSION}
 
-    def recommend(algorithm: str, uid: str) -> list[tuple[str, float, list[str]]]:
+    def recommend(algorithm: str, uid: str, depth: int = TOP_K) -> list[tuple[str, float, list[str]]]:
         exclude = rated.get(uid, set())
         free = [mid for mid in catalog if mid not in exclude]
         if algorithm == "popular":
             # 热门榜：高分人数定序，候选池前 500 做 MMR 类型去重，展示顺序仍按分数降序
             pool = [(mid, score) for mid, score in popular_top if mid not in exclude]
-            chosen = sorted(mmr_select(pool, TOP_K, lambda mid: movies.get(mid, ()), 0.8, 500),
+            chosen = sorted(mmr_select(pool, depth, lambda mid: movies.get(mid, ()), 0.8, 500),
                             key=lambda p: (-p[1], int(p[0])))
             return [(mid, score, ["全站高分人数热门榜"]) for mid, score in chosen]
         if algorithm == "content":
@@ -302,7 +329,7 @@ def main() -> None:
                 exposure = math.log1p(item_counts.get(mid, 0)) / log_max
                 scores[mid] = 0.55 * genre_part + 0.15 * decade_part + 0.30 * exposure
             ranked = sorted(((mid, round(score, 6)) for mid, score in scores.items()),
-                            key=lambda p: (-p[1], int(p[0])))[:TOP_K]
+                            key=lambda p: (-p[1], int(p[0])))[:depth]
             return [(mid, s, ["类型画像匹配"]) for mid, s in ranked]
         if algorithm == "itemcf":
             if not seeds.get(uid):
@@ -317,7 +344,7 @@ def main() -> None:
                     scores[cand] += contribution
                     evidence[cand][seed_id] = evidence[cand].get(seed_id, 0.0) + contribution
             ranked = sorted(((m, round(s, 6)) for m, s in scores.items()),
-                            key=lambda p: (-p[1], int(p[0])))[:TOP_K]
+                            key=lambda p: (-p[1], int(p[0])))[:depth]
             return [(mid, s, [f"因你看过《电影{seed_id}》"]) for mid, s in ranked]
         if algorithm == "als":
             vec = user_factors.get(uid)
@@ -337,8 +364,32 @@ def main() -> None:
                 # 单调压缩到 (1,5)：排序等价于原始预测分，且不产生并列分
                 scores[mid] = squash_rating(raw)
             ranked = sorted(((mid, round(score, 6)) for mid, score in scores.items()),
-                            key=lambda p: (-p[1], int(p[0])))[:TOP_K]
+                            key=lambda p: (-p[1], int(p[0])))[:depth]
             return [(mid, s, ["LFM 隐向量内积 + 基线"]) for mid, s in ranked]
+        if algorithm == "fusion":
+            # 实验四 S1：对四个成员算法的排序做 RRF 融合（与线上 fusion-rrf-v1 同一公式）
+            ranked_members = {}
+            for member in FUSION_MEMBERS:
+                ids = [mid for mid, _, _ in recommend(member, uid, FUSION_DEPTH)]
+                if ids:
+                    ranked_members[member] = ids
+            if not ranked_members:
+                return []
+            fused = defaultdict(float)
+            ranks = defaultdict(dict)
+            for member, ids in ranked_members.items():
+                for position, mid in enumerate(ids, start=1):
+                    fused[mid] += 1.0 / (FUSION_K + position)
+                    ranks[mid][member] = position
+            highest = max(fused.values()) or 1.0
+            score_of = {mid: round(value / highest, 6) for mid, value in fused.items()}
+            ordered = sorted(score_of.items(), key=lambda p: (-p[1], int(p[0])))[:depth]
+            out = []
+            for mid, score in ordered:
+                detail = "、".join(f"{n} 第{pos}名"
+                                  for n, pos in sorted(ranks[mid].items(), key=lambda p: p[1]))
+                out.append((mid, score, [f"RRF 融合 {len(ranks[mid])} 个算法：{detail}"]))
+            return out
         raise ValueError(algorithm)
 
     # validation 相关集

@@ -12,7 +12,7 @@ from .data import DATASET, SPLIT, SCHEMA, MANIFEST_SHA, FrozenData, ContractErro
 
 class ModelManifest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    algorithm: Literal["popular", "content", "itemcf", "als", "cold_start"]
+    algorithm: Literal["popular", "content", "itemcf", "als", "cold_start", "fusion"]
     model_version: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
     runtime_mode: Literal["business", "evaluation"]
     dataset_version: Literal[DATASET]

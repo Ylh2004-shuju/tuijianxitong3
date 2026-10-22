@@ -13,6 +13,9 @@ class Algorithm(StrEnum):
     itemcf = "itemcf"
     als = "als"
     cold_start = "cold_start"
+    # 实验四 S1：多算法融合（Reciprocal Rank Fusion），自身不训练模型，
+    # 只对上面四个算法的排序结果做融合
+    fusion = "fusion"
 
 
 @dataclass(frozen=True)

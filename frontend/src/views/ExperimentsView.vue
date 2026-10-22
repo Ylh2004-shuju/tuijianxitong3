@@ -16,10 +16,13 @@ const ratingPage = ref(1), available = ref<Algorithm[]>([]), registryError = ref
 const algorithmGroups = computed(() => [
   { label: '核心算法 · 学生实现', items: available.value.filter(a => ['content', 'itemcf', 'als'].includes(a.algorithm)) },
   { label: '配套策略 · 热门与冷启动', items: available.value.filter(a => ['popular', 'cold_start'].includes(a.algorithm)) },
+  // 实验四 S1：多算法融合
+  { label: '扩展功能 · 多算法融合（实验四）', items: available.value.filter(a => ['fusion'].includes(a.algorithm)) },
 ])
 const ALGORITHM_LABELS: Record<string, string> = {
   content: '内容推荐 content', itemcf: 'ItemCF itemcf', als: '矩阵分解 als',
   popular: '热门榜 popular', cold_start: '新用户冷启动 cold_start',
+  fusion: '多算法融合 RRF fusion',
 }
 function algorithmLabel(value: string) { return ALGORITHM_LABELS[value] || value }
 // 评价结果与算法面板共享同一份数据：页面上半部分的每个算法面板都显示自己的准确率。

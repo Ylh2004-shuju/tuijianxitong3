@@ -64,7 +64,7 @@ class EvaluationResult(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     status: Literal["not_run", "completed"]
     runtime_mode: Literal["evaluation"]
-    algorithm: Literal["popular", "content", "itemcf", "als", "cold_start"]
+    algorithm: Literal["popular", "content", "itemcf", "als", "cold_start", "fusion"]
     model_version: str = Field(min_length=1)
     task_sha256: str
     model_manifest_sha256: str

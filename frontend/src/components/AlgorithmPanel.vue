@@ -23,9 +23,14 @@ const metricsLoaded = computed(() => payload.value !== null)
 const DATA_NOTE: Record<string, string> = {
   content: '依据：电影类型 + 你自己的评分，不使用其他人的行为',
   itemcf: '依据：全站用户评分中共现的电影 + 你自己的评分；已排除你看过的电影',
-  popular: '依据：全站评分人数与平均分（贝叶斯平滑），与个人偏好无关',
+  popular: '依据：全站高分（≥4 分）人数排序，再做类型多样性重排，与个人偏好无关',
   cold_start: '零评分零收藏时展示全站热门榜；产生收藏或 ≥3.5 分评分后切换为你的类型偏好',
-  als: '依据：隐语义因子分解',
+  als: '依据：隐语义因子分解 + 用户/电影偏置基线',
+  fusion: '依据：四个算法的推荐名单按 RRF 倒数排名融合；每条结果下方标出它来自哪几个算法、各排第几名',
+}
+// 融合来源标签用的中文名
+const ALGO_NAMES: Record<string, string> = {
+  popular: '热门', content: '内容', itemcf: 'ItemCF', als: 'ALS', cold_start: '冷启动',
 }
 const nonPersonalized = computed(() => {
   const first = result.value?.items?.[0]?.recall_sources?.[0] || ''
@@ -37,6 +42,7 @@ const strategy = computed(() => {
   if (algorithm === 'popular') return '热门榜 · 非个性化'
   if (algorithm === 'itemcf') return 'ItemCF · 物品协同过滤'
   if (algorithm === 'content') return '内容推荐 · 类型画像'
+  if (algorithm === 'fusion') return '多算法融合 · RRF'
   return algorithm
 })
 let run = 0
@@ -84,7 +90,7 @@ watch(() => props.endpoint, load, { immediate: true })
       <span class="metric-chip"><small>覆盖电影</small><strong>{{ metrics.coverage_movies }}</strong></span>
       <span class="metric-origin">离线准确率 · {{ metrics.model_version }} · {{ payload?.user_count }} 位固定用户 · {{ payload?.partition }} 分区 · Top-{{ payload?.top_k }} · 相关阈值 ≥ {{ payload?.positive_threshold?.toFixed(1) }}</span>
     </div>
-    <p v-else-if="metricsLoaded && !metrics" class="metric-note">该算法不属于统一协议离线评价范围（仅评价 popular / content / itemcf / als 四种）。</p>
+    <p v-else-if="metricsLoaded && !metrics" class="metric-note">该算法不参与统一协议离线评价（仅评价 popular / content / itemcf / als / fusion）。</p>
     <StatePanel :loading="loading" :error="error" @retry="load">
       <div v-if="!endpoint || unavailable" class="algorithm-empty" role="status">
         <div class="algorithm-symbol"><el-icon aria-hidden="true"><Connection /></el-icon></div>
@@ -106,6 +112,12 @@ watch(() => props.endpoint, load, { immediate: true })
                 <span v-if="item.score !== null" class="rec-score">分数 {{ Number(item.score).toFixed(4) }}</span>
               </div>
               <span v-if="item.recall_sources?.length" class="rec-reason">{{ item.recall_sources[0] }}</span>
+              <div v-if="item.recall_ranks" class="rec-sources" :aria-label="`第 ${item.rank} 名由哪些算法贡献`">
+                <span class="source-label">融合来源</span>
+                <span v-for="(position, name) in item.recall_ranks" :key="name" class="source-chip">
+                  {{ ALGO_NAMES[name as string] || name }} <strong>#{{ position }}</strong>
+                </span>
+              </div>
             </div>
           </li>
         </ol>
@@ -123,4 +135,8 @@ watch(() => props.endpoint, load, { immediate: true })
 .result-strategy { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; flex-wrap: wrap; }
 .strategy-note { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 0 0 10px; }
 .rec-reason { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 100px; background: var(--accent-tint); color: var(--accent); font-size: 11px; line-height: 1.6; }
+.rec-sources { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.source-label { color: var(--muted); font-size: 11px; }
+.source-chip { padding: 1px 8px; border: 1px solid var(--border); border-radius: 100px; font-size: 11px; line-height: 1.6; color: var(--muted); }
+.source-chip strong { color: var(--accent); font-variant-numeric: tabular-nums; }
 </style>

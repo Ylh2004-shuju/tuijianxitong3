@@ -61,15 +61,12 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      # 整个 recommender 目录挂进去：实验四新增了 fusion Provider，并改动了
+      # contracts.py（Algorithm 枚举）与 validation.py（清单白名单），
+      # 逐文件挂载容易漏，改为整目录只读挂载
       - type: bind
-        source: ./recommender/student
-        target: /app/recommender/student
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ./recommender/__init__.py
-        target: /app/recommender/__init__.py
+        source: ./recommender
+        target: /app/recommender
         read_only: true
         bind:
           create_host_path: false
