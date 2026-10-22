@@ -15,6 +15,7 @@ cold_start  coldstart-v1       popularity fallback, then a genre profile built
 from pathlib import Path
 
 from ..contracts import Algorithm, PROVIDERS
+from .als import ALSRecommender
 from .cold_start import ColdStartRecommender
 from .content_recommender import ContentGenreRecommender
 from .itemcf import ItemCFRecommender
@@ -26,3 +27,4 @@ PROVIDERS[Algorithm.content] = ContentGenreRecommender(_MODELS / "content" / "mo
 PROVIDERS[Algorithm.popular] = PopularRecommender(_MODELS / "popular-v1" / "manifest.json")
 PROVIDERS[Algorithm.itemcf] = ItemCFRecommender(_MODELS / "itemcf-v1" / "manifest.json")
 PROVIDERS[Algorithm.cold_start] = ColdStartRecommender(_MODELS / "coldstart-v1" / "manifest.json")
+PROVIDERS[Algorithm.als] = ALSRecommender(_MODELS / "als-v1" / "manifest.json")

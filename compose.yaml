@@ -56,6 +56,12 @@ services:
         bind:
           create_host_path: false
       - type: bind
+        source: ./models/evaluation
+        target: /app/models/evaluation
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
         source: ./recommender/student
         target: /app/recommender/student
         read_only: true
@@ -64,6 +70,12 @@ services:
       - type: bind
         source: ./recommender/__init__.py
         target: /app/recommender/__init__.py
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./backend/app
+        target: /app/backend/app
         read_only: true
         bind:
           create_host_path: false
