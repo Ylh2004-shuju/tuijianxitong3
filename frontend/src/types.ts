@@ -15,3 +15,13 @@ export interface AlgorithmResult {
   items: { movie_id: string; rank: number; algorithm: string; model_version: string; score: number | null
     recall_sources?: string[] | null; recall_ranks?: Record<string, number> | null }[]
 }
+// 实验三统一协议离线评价：validation 分区 Precision@10 / Recall@10
+export interface EvaluationRow {
+  algorithm: string; model_version: string
+  precision_at_10: number; recall_at_10: number
+  total_hits: number; users_with_items: number; users_empty: number; coverage_movies: number; status: string
+}
+export interface EvaluationPayload {
+  dataset_version: string; split_version: string; partition: string
+  user_count: number; positive_threshold: number; top_k: number; items: EvaluationRow[]
+}

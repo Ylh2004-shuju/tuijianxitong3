@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { computed, onScopeDispose, ref, watch } from 'vue'
+import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { Connection } from '@element-plus/icons-vue'
 import http, { ApiError } from '../api'
 import StatePanel from './StatePanel.vue'
 import type { AlgorithmResult, Movie } from '../types'
+import { useEvaluation } from '../composables/useEvaluation'
 const props = withDefaults(defineProps<{ endpoint: string | null; label: string; emptySubject?: string }>(), { emptySubject: '登录后体验' })
 const loading = ref(false), error = ref<unknown>(null), unavailable = ref(false)
 const result = ref<AlgorithmResult | null>(null)
 const movieMap = ref<Record<string, Movie>>({})
+// 该算法的离线准确率（统一协议评价，validation 分区 Top-10）
+const { payload, load: loadEvaluation, metricsFor } = useEvaluation()
+onMounted(() => { void loadEvaluation() })
+const algorithmKey = computed(() => {
+  if (result.value?.algorithm) return result.value.algorithm
+  const matched = props.endpoint?.match(/\/recommendations\/([a-z_]+)/)
+  return matched?.[1] || ''
+})
+const metrics = computed(() => (algorithmKey.value ? metricsFor(algorithmKey.value) : null))
+const metricsLoaded = computed(() => payload.value !== null)
 // 每个算法都必须说明"结果来自什么数据"，避免把热门榜当成个性化结果。
 const DATA_NOTE: Record<string, string> = {
   content: '依据：电影类型 + 你自己的评分，不使用其他人的行为',
@@ -66,6 +77,14 @@ watch(() => props.endpoint, load, { immediate: true })
 <template>
   <section class="algorithm-panel" :aria-label="label">
     <div class="section-top"><h3>{{ label }}</h3><span class="small-label">RECOMMENDATION</span></div>
+    <div v-if="metrics" class="result-metrics" :aria-label="`${label} 离线准确率`">
+      <span class="metric-chip"><small>准确率 Precision@10</small><strong>{{ metrics.precision_at_10.toFixed(4) }}</strong></span>
+      <span class="metric-chip"><small>召回率 Recall@10</small><strong>{{ metrics.recall_at_10.toFixed(4) }}</strong></span>
+      <span class="metric-chip"><small>命中数</small><strong>{{ metrics.total_hits }}</strong></span>
+      <span class="metric-chip"><small>覆盖电影</small><strong>{{ metrics.coverage_movies }}</strong></span>
+      <span class="metric-origin">离线准确率 · {{ metrics.model_version }} · {{ payload?.user_count }} 位固定用户 · {{ payload?.partition }} 分区 · Top-{{ payload?.top_k }} · 相关阈值 ≥ {{ payload?.positive_threshold?.toFixed(1) }}</span>
+    </div>
+    <p v-else-if="metricsLoaded && !metrics" class="metric-note">该算法不属于统一协议离线评价范围（仅评价 popular / content / itemcf / als 四种）。</p>
     <StatePanel :loading="loading" :error="error" @retry="load">
       <div v-if="!endpoint || unavailable" class="algorithm-empty" role="status">
         <div class="algorithm-symbol"><el-icon aria-hidden="true"><Connection /></el-icon></div>
@@ -95,6 +114,12 @@ watch(() => props.endpoint, load, { immediate: true })
   </section>
 </template>
 <style scoped>
+.result-metrics { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-tint); }
+.metric-chip { display: flex; flex-direction: column; gap: 2px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.metric-chip small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.metric-chip strong { color: var(--accent); font-size: 17px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.metric-origin { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.metric-note { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.7; }
 .result-strategy { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; flex-wrap: wrap; }
 .strategy-note { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 0 0 10px; }
 .rec-reason { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 100px; background: var(--accent-tint); color: var(--accent); font-size: 11px; line-height: 1.6; }

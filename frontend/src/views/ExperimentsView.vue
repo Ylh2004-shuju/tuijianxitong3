@@ -2,8 +2,9 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../stores/auth'
-import http, { ApiError } from '../api'
+import http from '../api'
 import { useRemote } from '../composables/useRemote'
+import { useEvaluation } from '../composables/useEvaluation'
 import type { Algorithm, HistoryUser, Movie, Page } from '../types'
 import StatePanel from '../components/StatePanel.vue'
 import PageNav from '../components/PageNav.vue'
@@ -21,17 +22,14 @@ const ALGORITHM_LABELS: Record<string, string> = {
   popular: '热门榜 popular', cold_start: '新用户冷启动 cold_start',
 }
 function algorithmLabel(value: string) { return ALGORITHM_LABELS[value] || value }
-const evaluationError = ref<unknown>(null), evaluationPending = ref(false), evaluationMissing = ref(false)
-interface EvaluationRow { algorithm: string; model_version: string; precision_at_10: number; recall_at_10: number; total_hits: number; users_with_items: number; users_empty: number; coverage_movies: number; status: string }
-interface EvaluationPayload { dataset_version: string; split_version: string; partition: string; user_count: number; positive_threshold: number; top_k: number; items: EvaluationRow[] }
-const evaluation = ref<EvaluationPayload | null>(null)
+// 评价结果与算法面板共享同一份数据：页面上半部分的每个算法面板都显示自己的准确率。
+const { payload: evaluation, loading: evaluationPending, missing: evaluationMissing, error: evaluationError, load: fetchEvaluation } = useEvaluation()
 const subject = computed(() => source.value === 'ml' ? (selected.value ? `ml:${selected.value}` : '') : auth.account?.subject_key || '')
 const endpoint = computed(() => !subject.value ? null : source.value === 'ml' ? `/demo/history-users/${selected.value}/recommendations/${algorithm.value}` : `/me/recommendations/${algorithm.value}`)
 function updateUrl() { void router.replace({ path:'/experiments', query:{ source:source.value, algorithm:algorithm.value, ...(selected.value ? {user:selected.value} : {}) } }) }
 async function fetchUsers(page = userPage.value) { userPage.value = page; await users.load(async () => (await http.get<Page<HistoryUser>>('/demo/history-users',{params:{page,per_page:20}})).data) }
 function fetchRatings() { if (source.value !== 'ml' || !selected.value) return; return ratings.load(async () => (await http.get<Page<Movie>>(`/demo/history-users/${encodeURIComponent(selected.value)}/ratings`,{params:{page:ratingPage.value,per_page:10}})).data) }
 async function fetchRegistry() { try { available.value=(await http.get<{items:Algorithm[]}>('/experiments/algorithms')).data.items; registryError.value=null } catch(e) { registryError.value=e } }
-async function fetchEvaluation() { evaluationPending.value=true; evaluationError.value=null; evaluationMissing.value=false; try { evaluation.value=(await http.get<EvaluationPayload>('/experiments/evaluations')).data } catch(e) { evaluation.value=null; if(e instanceof ApiError && e.status===501 && e.code==='EVALUATION_NOT_IMPLEMENTED') evaluationMissing.value=true; else evaluationError.value=e } finally { evaluationPending.value=false } }
 watch(() => route.query, () => { source.value=route.query.source==='app'?'app':'ml'; algorithm.value=typeof route.query.algorithm==='string' && /^[a-z_]+$/.test(route.query.algorithm) ? route.query.algorithm:'content'; selected.value=typeof route.query.user==='string' && /^[1-9][0-9]*$/.test(route.query.user)?route.query.user:'' }, {immediate:true})
 watch(() => [selected.value,source.value], () => {ratingPage.value=1; void fetchRatings()})
 void fetchUsers(); void fetchRegistry(); void fetchEvaluation(); void fetchRatings()
