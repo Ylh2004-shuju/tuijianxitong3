@@ -1,19 +1,22 @@
-"""Non-personalized popularity baseline (实验二 任务1).
+"""Non-personalized popularity baseline (实验二 任务1，v3 改版).
 
-The ranking is a Bayesian average of the sealed business snapshot, so a movie
-with three 5.0 ratings cannot outrank a movie with thousands of strong ratings.
-Seen movies are filtered out for usefulness, but the ordering itself never
-depends on the current user: the result must never be presented as
-personalized.
+The ranking is the **positive-rating count** (how many people rated the movie
+≥ 4.0) of the sealed business snapshot, followed by an MMR genre-diversity
+re-rank. The count — not the average rating — is what predicts how many people
+will rate the movie highly in the future. Seen movies are filtered out for
+usefulness, but the ordering itself never depends on the current user: the
+result must never be presented as personalized.
 """
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ..business import read_history
 from ..contracts import Algorithm, RecommendationItem, RecommendationRequest, RecommendationResult
-from .common import catalog, read_artifact
+from .common import catalog, mmr_select, movie_genres, read_artifact
 
-MODEL_VERSION = "popular-bayes-v1"
+MODEL_VERSION = "popular-positive-mmr-v3"
+# MMR 重排：候选池取高分榜前 500 部，λ=0.8 偏向相关性、0.2 惩罚类型重复
+MMR_LAMBDA, MMR_POOL = 0.8, 500
 
 
 class PopularRecommender:
@@ -34,23 +37,28 @@ class PopularRecommender:
         approved = catalog()
         seen = {feedback.movie_id for feedback in read_history(request).ratings}
 
+        pool = [(entry["movie_id"], entry["popularity_score"]) for entry in entries
+                if entry["movie_id"] in approved and entry["movie_id"] not in seen]
+        # 榜单顺序固定（分数降序、同分 movie_id 升序），MMR 在此之上做类型去重
+        pool.sort(key=lambda pair: (-pair[1], int(pair[0])))
+        metadata = {entry["movie_id"]: entry for entry in entries}
+        # MMR 决定"选哪 10 部"，展示顺序仍按贝叶斯分降序（同分按 movie_id 升序），
+        # 这样榜单分数保持可比，多样性体现在集合本身。
+        chosen = sorted(mmr_select(pool, request.limit, movie_genres, MMR_LAMBDA, MMR_POOL),
+                        key=lambda pair: (-pair[1], int(pair[0])))
         items: list[RecommendationItem] = []
-        for entry in entries:
-            movie_id = entry["movie_id"]
-            if movie_id not in approved or movie_id in seen:
-                continue
+        for position, (movie_id, score) in enumerate(chosen, start=1):
+            entry = metadata[movie_id]
             items.append(RecommendationItem(
                 movie_id=movie_id,
-                rank=len(items) + 1,
+                rank=position,
                 algorithm=Algorithm.popular,
                 model_version=MODEL_VERSION,
-                score=entry["popularity_score"],
+                score=score,
                 recall_sources=[
-                    f"全站 {entry['rating_count']} 人评分 · 平均 {entry['mean_rating']:.2f} 分"
+                    f"全站 {entry['positive_count']} 人给了 4 分以上 · 平均 {entry['mean_rating']:.2f} 分"
                 ],
             ))
-            if len(items) == request.limit:
-                break
 
         return RecommendationResult(
             algorithm=Algorithm.popular,

@@ -11,6 +11,9 @@
   * models/evaluation/predictions/<algo>.jsonl 预测文件（经 check_predictions 校验）
   * models/evaluation/results/<algo>.json EvaluationResult
   * models/evaluation/results/summary.json 对比汇总与覆盖统计
+
+只重算单个算法：python scripts/run_evaluation.py --only=als
+（--only 会读取已有 summary.json 再覆盖本次算法，汇总始终保持四行）
 """
 import csv
 import gzip
@@ -42,6 +45,7 @@ RANK, REG, ITERS, SEED = 16, 0.1, 15, 42
 from recommender.data import FrozenData  # noqa: E402
 from recommender import evaluation as ev  # noqa: E402
 from recommender.evaluation import check_predictions, check_evaluation_result  # noqa: E402
+from recommender.student.common import idf_cosine, mmr_select, squash_rating  # noqa: E402
 
 
 def sha256(path: Path) -> str:
@@ -69,29 +73,34 @@ def build_models(data: FrozenData, train_rows: list[dict]) -> dict[str, dict]:
         movies[row["movie_id"]] = () if raw in {"", "(no genres listed)"} else tuple(raw.split("|"))
     catalog = data.catalog()
 
-    # --- popular: Bayesian average ---
-    sums, counts = defaultdict(float), defaultdict(int)
+    # --- popular: 高分(>=4)人数 + MMR 多样性重排 ---
+    sums, counts, highs = defaultdict(float), defaultdict(int), defaultdict(int)
     for row in train_rows:
-        sums[row["movieId"]] += float(row["rating"])
+        rating = float(row["rating"])
+        sums[row["movieId"]] += rating
         counts[row["movieId"]] += 1
-    prior, strength = sum(sums.values()) / sum(counts.values()), 50
-    bayes = {mid: (sums[mid] + prior * strength) / (counts[mid] + strength)
-             for mid in counts if counts[mid] >= 100}
-    top = sorted(bayes.items(), key=lambda p: (-p[1], int(p[0])))[:500]
+        if rating >= POSITIVE:
+            highs[row["movieId"]] += 1
+    prior = sum(sums.values()) / sum(counts.values())
+    max_high = float(max(highs.values())) if highs else 1.0
+    # 热门定义 = 高分人数（归一化到 (0,1]，与业务版 build_popular 完全一致）
+    popular_rank = sorted(((mid, float(highs[mid]) / max_high) for mid in counts if counts[mid] >= 100),
+                          key=lambda p: (-p[1], int(p[0])))[:500]
+    top = popular_rank
     popular_dir = EVAL_DIR / "popular-v1"
     popular_dir.mkdir(parents=True, exist_ok=True)
     artifacts = {"popular_top.json": sha256_with_write(
         popular_dir / "popular_top.json",
-        {"model_version": "popular-bayes-eval-v1", "prior": round(prior, 6), "strength": strength,
+        {"model_version": "popular-positive-mmr-eval-v3", "positive_threshold": POSITIVE,
          "min_rating_count": 100, "top": [[mid, round(score, 6)] for mid, score in top]})}
 
-    # --- content: genre index（静态特征，与业务版一致） ---
+    # --- content: 类型特征 + 曝光度先验（静态特征与业务版一致，曝光度来自 train） ---
     genres = sorted({g for gs in movies.values() for g in gs})
     content_dir = EVAL_DIR / "content-v1"
     content_dir.mkdir(parents=True, exist_ok=True)
     artifacts_c = {"genre_index.json": sha256_with_write(
         content_dir / "genre_index.json",
-        {"model_version": "content-genre-eval-v1", "genres": genres})}
+        {"model_version": "content-feature-eval-v2", "genres": genres})}
 
     # --- itemcf: cosine co-occurrence over positive ratings ---
     pos_users = defaultdict(set)
@@ -143,12 +152,16 @@ def build_models(data: FrozenData, train_rows: list[dict]) -> dict[str, dict]:
         }
         (directory / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
                                                  encoding="utf-8")
-    write_manifest(popular_dir, "popular", "popular-bayes-eval-v1", artifacts,
-                   {"ranking": "bayesian_average_of_ratings", "prior": round(prior, 6),
-                    "prior_strength": 50, "min_rating_count": 100, "stored_top": 500})
-    write_manifest(content_dir, "content", "content-genre-eval-v1", artifacts_c,
-                   {"features": "one-hot movie genres", "profile": "sum of (rating-3.0) over rated movies",
-                    "scoring": "cosine(profile, movie_genres)", "positive_threshold": POSITIVE})
+    write_manifest(popular_dir, "popular", "popular-positive-mmr-eval-v3", artifacts,
+                   {"ranking": "positive_rating_count", "positive_threshold": POSITIVE,
+                    "min_rating_count": 100, "stored_top": 500,
+                    "personalization": "none", "rerank": "MMR over top-500 candidates",
+                    "mmr_lambda": 0.8, "diversity_measure": "genre_jaccard"})
+    write_manifest(content_dir, "content", "content-feature-eval-v2", artifacts_c,
+                   {"features": "idf-weighted genres + release decade + exposure prior",
+                    "profile": "sum of (rating - user_mean) over rated movies, idf-weighted",
+                    "scoring": "0.55*idf_cosine + 0.15*decade_affinity + 0.30*exposure_prior",
+                    "positive_threshold": POSITIVE})
     write_manifest(itemcf_dir, "itemcf", "itemcf-cosine-eval-v1", artifacts_i,
                    {"similarity": "cosine over binary co-occurrence of ratings>=4.0",
                     "min_cooccurrence": 3, "max_neighbours": 30, "positive_threshold": POSITIVE})
@@ -175,7 +188,15 @@ def dto(algorithm: str, version: str, items: list[tuple[str, float, list[str]]])
     }
 
 
+ALL_ALGORITHMS = ["popular", "content", "itemcf", "als"]
+
+
 def main() -> None:
+    # 只跑指定算法时用 --only=als，便于改一个算法后快速复核（结果文件按算法独立写）
+    only = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("--only="):
+            only = [name for name in arg.split("=", 1)[1].split(",") if name]
     data = FrozenData(PACKAGE)
     train_rows = list(data.training())
     built = build_models(data, train_rows)
@@ -187,10 +208,12 @@ def main() -> None:
 
     # 用户排除集：catalog - 该用户 train 已评分
     rated = defaultdict(set)
+    rated_ratings = defaultdict(dict)
     for row in train_rows:
         uid = row["userId"]
         if uid in users:
             rated[uid].add(row["movieId"])
+            rated_ratings[uid][row["movieId"]] = float(row["rating"])
 
     # 用户正分 seeds 与评分画像
     seeds = defaultdict(list)
@@ -201,49 +224,85 @@ def main() -> None:
 
     # genre 表（content 用）
     movies = {}
+    years = {}
     for row in data.rows("movies.csv"):
         raw = row["genres"] or ""
         movies[row["movie_id"]] = () if raw in {"", "(no genres listed)"} else tuple(raw.split("|"))
+        raw_year = (row["release_year"] or "").strip()
+        years[row["movie_id"]] = int(raw_year) if raw_year.isdigit() else None
     genre_pos = {g: i for i, g in enumerate(sorted({x for gs in movies.values() for x in gs}))}
+    # 类型 IDF：出现越少类型区分度越高
+    doc_frequency = defaultdict(int)
+    for gs in movies.values():
+        for g in gs:
+            doc_frequency[g] += 1
+    genre_idf_weight = {g: math.log(len(movies) / max(c, 1)) + 1.0 for g, c in doc_frequency.items()}
+
+    # 电影曝光度（内容推荐的曝光先验 / ALS 的候选过滤都用它）
+    item_counts = defaultdict(int)
+    for row in train_rows:
+        item_counts[row["movieId"]] += 1
+    log_max = math.log1p(max(item_counts.values()) or 1)
 
     # itemcf 邻居
     with gzip.open(EVAL_DIR / "itemcf-v1" / "item_neighbors.json.gz", "rt", encoding="utf-8") as stream:
         neighbours = json.load(stream)["items"]
 
-    # als 因子（评价模型）
+    # als 因子 + 基线（评价模型）
     with gzip.open(EVAL_DIR / "als-v1" / "user_factors.json.gz", "rt", encoding="utf-8") as stream:
         user_factors = json.load(stream)["users"]
     with gzip.open(EVAL_DIR / "als-v1" / "item_factors.json.gz", "rt", encoding="utf-8") as stream:
         item_factors = json.load(stream)["items"]
+    with gzip.open(EVAL_DIR / "als-v1" / "biases.json.gz", "rt", encoding="utf-8") as stream:
+        als_biases = json.load(stream)
+    als_mu = float(als_biases.get("mu", 0.0))
+    als_user_bias = als_biases.get("users", {})
+    als_item_bias = als_biases.get("items", {})
+    als_min_exposure = int(als_biases.get("min_exposure", 20))
 
     popular_top = built["popular_top"]
-    versions = {"popular": "popular-bayes-eval-v1", "content": "content-genre-eval-v1",
+    versions = {"popular": "popular-positive-mmr-eval-v3", "content": "content-feature-eval-v2",
                 "itemcf": "itemcf-cosine-eval-v1", "als": built["als_version"]}
 
     def recommend(algorithm: str, uid: str) -> list[tuple[str, float, list[str]]]:
         exclude = rated.get(uid, set())
         free = [mid for mid in catalog if mid not in exclude]
         if algorithm == "popular":
-            out = [(mid, score, ["全站贝叶斯热门榜"]) for mid, score in popular_top
-                   if mid not in exclude][:TOP_K]
-            return out
+            # 热门榜：高分人数定序，候选池前 500 做 MMR 类型去重，展示顺序仍按分数降序
+            pool = [(mid, score) for mid, score in popular_top if mid not in exclude]
+            chosen = sorted(mmr_select(pool, TOP_K, lambda mid: movies.get(mid, ()), 0.8, 500),
+                            key=lambda p: (-p[1], int(p[0])))
+            return [(mid, score, ["全站高分人数热门榜"]) for mid, score in chosen]
         if algorithm == "content":
-            if not seeds.get(uid):
+            if not rated.get(uid):
                 return []
-            profile = [0.0] * len(genre_pos)
-            for mid, weight in seeds[uid]:
-                for g in movies.get(mid, ()):
-                    profile[genre_pos[g]] += weight
-            norm = math.sqrt(sum(v * v for v in profile))
+            weights = {mid: float(value) for mid, value in rated_ratings[uid].items()}
+            user_mean = sum(weights.values()) / len(weights)
+            centred = {mid: value - user_mean for mid, value in weights.items()}
+            # IDF 加权的类型画像 + 年代画像
+            profile: dict[str, float] = {}
+            decade_profile: dict[str, float] = {}
+            for mid, weight in centred.items():
+                if weight == 0.0:
+                    continue
+                for genre in movies.get(mid, ()):
+                    profile[genre] = profile.get(genre, 0.0) + weight * genre_idf_weight.get(genre, 1.0)
+                year = years.get(mid)
+                if year is not None:
+                    decade_profile[f"{year // 10 * 10}s"] = decade_profile.get(f"{year // 10 * 10}s", 0.0) + weight
+            profile_norm = math.sqrt(sum(v * v for v in profile.values()))
+            decade_norm = math.sqrt(sum(v * v for v in decade_profile.values()))
             scores = {}
             for mid in free:
-                gs = movies.get(mid, ())
-                if not gs or norm == 0.0:
-                    continue
-                dot = sum(profile[genre_pos[g]] for g in gs if g in genre_pos)
-                if dot > 0:
-                    scores[mid] = round(dot / (norm * math.sqrt(len(gs))), 6)
-            ranked = sorted(scores.items(), key=lambda p: (-p[1], int(p[0])))[:TOP_K]
+                genre_part = idf_cosine(profile, profile_norm, mid) if profile_norm > 0 else 0.0
+                year = years.get(mid)
+                decade_part = 0.0
+                if decade_norm > 0 and year is not None:
+                    decade_part = max(decade_profile.get(f"{year // 10 * 10}s", 0.0) / decade_norm, 0.0)
+                exposure = math.log1p(item_counts.get(mid, 0)) / log_max
+                scores[mid] = 0.55 * genre_part + 0.15 * decade_part + 0.30 * exposure
+            ranked = sorted(((mid, round(score, 6)) for mid, score in scores.items()),
+                            key=lambda p: (-p[1], int(p[0])))[:TOP_K]
             return [(mid, s, ["类型画像匹配"]) for mid, s in ranked]
         if algorithm == "itemcf":
             if not seeds.get(uid):
@@ -264,14 +323,22 @@ def main() -> None:
             vec = user_factors.get(uid)
             if not vec:
                 return []
+            # 改进：μ + b_u + b_i + p·q，候选按曝光度过滤（train 评分 >= 20 条）
+            user_bias = float(als_user_bias.get(uid, 0.0))
             scores = {}
             for mid in free:
+                if item_counts.get(mid, 0) < als_min_exposure:
+                    continue
                 ivec = item_factors.get(mid)
                 if not ivec:
                     continue
-                scores[mid] = round(sum(a * b for a, b in zip(vec, ivec)), 6)
-            ranked = sorted(scores.items(), key=lambda p: (-p[1], int(p[0])))[:TOP_K]
-            return [(mid, s, ["LFM 隐向量内积"]) for mid, s in ranked]
+                raw = (als_mu + user_bias + float(als_item_bias.get(mid, 0.0))
+                       + sum(a * b for a, b in zip(vec, ivec)))
+                # 单调压缩到 (1,5)：排序等价于原始预测分，且不产生并列分
+                scores[mid] = squash_rating(raw)
+            ranked = sorted(((mid, round(score, 6)) for mid, score in scores.items()),
+                            key=lambda p: (-p[1], int(p[0])))[:TOP_K]
+            return [(mid, s, ["LFM 隐向量内积 + 基线"]) for mid, s in ranked]
         raise ValueError(algorithm)
 
     # validation 相关集
@@ -286,8 +353,12 @@ def main() -> None:
     pred_dir.mkdir(parents=True, exist_ok=True)
     result_dir = EVAL_DIR / "results"
     result_dir.mkdir(parents=True, exist_ok=True)
-    summary = {}
-    for algorithm in ["popular", "content", "itemcf", "als"]:
+    # 只跑部分算法时，先载入已有 summary 再覆盖本次重算的算法，保证汇总始终是四行
+    summary_path = result_dir / "summary.json"
+    summary: dict = {}
+    if only and summary_path.exists():
+        summary = json.loads(summary_path.read_text(encoding="utf-8")).get("algorithms", {})
+    for algorithm in (only or ALL_ALGORITHMS):
         version = versions[algorithm]
         lines = []
         hits_total = prec_total = rec_total = 0
@@ -329,10 +400,11 @@ def main() -> None:
         print(f"{algorithm:9s} P@10={p10:.4f} R@10={r10:.4f} hits={hits_total} "
               f"users_with_items={non_empty} coverage={len(covered_movies)}", flush=True)
 
+    algorithms = {name: summary[name] for name in ALL_ALGORITHMS if name in summary}
     (result_dir / "summary.json").write_text(json.dumps({
         "dataset_version": DATASET, "split_version": SPLIT, "partition": PARTITION,
         "user_count": len(users), "positive_threshold": POSITIVE, "top_k": TOP_K,
-        "algorithms": summary}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        "algorithms": algorithms}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("ALL DONE")
 
 
