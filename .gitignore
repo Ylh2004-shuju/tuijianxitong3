@@ -18,6 +18,8 @@
 .env.*
 !.env.example
 **/private/
+# 实验四 S4：大模型密钥文件（llm-api-key），只在本机
+/deployment/llm/
 **/local.runtime.json
 **/local.development.json
 *.pem

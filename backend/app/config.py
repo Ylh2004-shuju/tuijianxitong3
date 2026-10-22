@@ -31,12 +31,22 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     llm_model: str = "qwen-plus"
     llm_api_key: SecretStr | None = None
+    # 密钥也可以放文件里：课程启动脚本用 --env-file 覆盖了根目录 .env，
+    # 走环境变量会丢，所以容器里默认从只读挂载的 /app/llm-secrets/llm-api-key 读。
+    llm_key_file: Path | None = None
     llm_timeout: float = Field(default=60.0, ge=5, le=300)
 
     @model_validator(mode="after")
     def blank_llm_key_is_none(self) -> "Settings":
         if self.llm_api_key is not None and not self.llm_api_key.get_secret_value().strip():
             object.__setattr__(self, "llm_api_key", None)
+        if self.llm_api_key is None and self.llm_key_file is not None:
+            try:
+                text = self.llm_key_file.read_text(encoding="utf-8").strip()
+            except OSError:
+                text = ""  # 文件不存在等于没配，功能如实返回 503，不影响启动
+            if text:
+                object.__setattr__(self, "llm_api_key", SecretStr(text))
         return self
 
     @model_validator(mode="after")

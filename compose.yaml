@@ -51,6 +51,8 @@ services:
       APP_LLM_API_KEY: ${APP_LLM_API_KEY:-}
       APP_LLM_BASE_URL: ${APP_LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
       APP_LLM_MODEL: ${APP_LLM_MODEL:-qwen-plus}
+      # 课程启动脚本用 --env-file 覆盖了根目录 .env，环境变量会丢；优先读挂载进来的密钥文件
+      APP_LLM_KEY_FILE: /app/llm-secrets/llm-api-key
     secrets: [app_password, jwt_secret]
     volumes:
       - *package
@@ -81,6 +83,15 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      # 实验四 S4：大模型密钥（deployment/llm/ 已在 .gitignore 里排除）。
+      # 挂目录而不是挂单文件、且允许 Docker 自动建空目录：
+      # 没放密钥的机器照样能启动整套服务，只是解释功能如实返回 503。
+      - type: bind
+        source: ./deployment/llm
+        target: /app/llm-secrets
+        read_only: true
+        bind:
+          create_host_path: true
     networks: [database, edge]
     depends_on:
       db: {condition: service_healthy}

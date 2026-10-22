@@ -139,7 +139,7 @@ watch(() => [props.endpoint, explainSubject.value], () => { explanations.value =
                   {{ ALGO_NAMES[name as string] || name }} <strong>#{{ position }}</strong>
                 </span>
               </div>
-              <div v-if="llmReady && explainSubject" class="explain-row">
+              <div v-if="llmReady === true && explainSubject" class="explain-row">
                 <button type="button" class="explain-toggle" :disabled="explanations[item.movie_id]?.loading"
                   @click="toggleExplanation(item.movie_id)">
                   {{ explanations[item.movie_id]?.loading ? '正在生成解释…'

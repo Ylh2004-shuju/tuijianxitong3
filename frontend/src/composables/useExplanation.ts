@@ -5,7 +5,8 @@ import type { Explanation } from '../types'
 // 实验四 S4：大模型个性化推荐解释。
 // 页面级共享：无论页面上有几个推荐面板，"是否配置了大模型"只问一次；
 // 解释结果按 用户+算法+电影 缓存，重复点开不再请求，也不重复计费。
-const configured = ref(false)
+// null = 还没问过后端；false = 后端确实没配密钥（功能未启用，不是坏了）
+const configured = ref<boolean | null>(null)
 let statusPending: Promise<void> | null = null
 const cache = new Map<string, Explanation>()
 

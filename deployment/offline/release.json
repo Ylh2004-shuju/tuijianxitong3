@@ -85,7 +85,7 @@
   "files": [
     {
       "path": "compose.yaml",
-      "sha256": "2d98bee51932179fa6cc337a0f047acbeafc52cd361642ab3e6fece382b2186c"
+      "sha256": "3b84a1325dfd2df276dab7b410f8c4af32fcc7f89b3efeed8056f2b48fb18902"
     },
     {
       "path": "deployment/course.ps1",
