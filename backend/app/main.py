@@ -17,6 +17,7 @@ from .catalog import router as catalog_router
 from .activity import router as activity_router
 from .experiments import router as experiments_router
 from .explanations import router as explanations_router
+from .behavior import router as behavior_router
 
 log = logging.getLogger("course_api")
 
@@ -108,4 +109,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(activity_router, prefix="/api/v1", dependencies=[Depends(ready_dependency)])
     app.include_router(experiments_router, prefix="/api/v1", dependencies=[Depends(ready_dependency)])
     app.include_router(explanations_router, prefix="/api/v1", dependencies=[Depends(ready_dependency)])
+    app.include_router(behavior_router, prefix="/api/v1", dependencies=[Depends(ready_dependency)])
     return app

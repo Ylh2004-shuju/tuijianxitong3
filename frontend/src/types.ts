@@ -31,3 +31,18 @@ export interface EvaluationPayload {
   dataset_version: string; split_version: string; partition: string
   user_count: number; positive_threshold: number; top_k: number; items: EvaluationRow[]
 }
+// 实验五：本次推荐实际读取到的行为输入。fingerprint 随任意一条评分/收藏变化，
+// 是「系统确实重新读了新行为」的机器可验证证据。
+export interface BehaviorEvent {
+  kind: 'rating' | 'favorite'; movie_id: string; title: string; rating: string | null; at: string | null
+}
+export interface BehaviorConsumer {
+  algorithm: string; behavior: 'full' | 'inherited' | 'exclude_only' | 'none'; note: string
+}
+export interface BehaviorSnapshot {
+  subject_key: string; as_of: string; fingerprint: string
+  rating_count: number; favorite_count: number
+  positive_rating_count: number; weighted_seed_count: number
+  personalized: boolean; strategy: string; genres: string[]
+  latest: BehaviorEvent[]; consumers: BehaviorConsumer[]
+}

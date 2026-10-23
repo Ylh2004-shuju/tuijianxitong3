@@ -38,6 +38,11 @@ async function explain(subject: string, algorithm: string, movieId: string): Pro
   }
 }
 
+export function clearExplanationCache() {
+  // 新增评分/收藏后，旧解释引用的证据已经过时，必须重新生成
+  cache.clear()
+}
+
 export function useExplanation() {
-  return { configured, loadStatus, explain }
+  return { configured, loadStatus, explain, clearExplanationCache }
 }

@@ -6,10 +6,13 @@ import { ElMessage } from 'element-plus'
 import http, { errorMessage } from '../api'
 import { useAuth } from '../stores/auth'
 import { useRemote } from '../composables/useRemote'
+import { useBehavior } from '../composables/useBehavior'
 import type { Movie, Page } from '../types'
 import MoviePoster from '../components/MoviePoster.vue'
 import StatePanel from '../components/StatePanel.vue'
 const route = useRoute(), router = useRouter(), auth = useAuth()
+// 实验五：写完行为就通知所有推荐视图重新取数（不是前端改旧列表，是真的再算一次）
+const { bump: bumpBehavior } = useBehavior()
 const { data: movie, error, loading, load } = useRemote<Movie>()
 const score = ref<number | undefined>(), savedScore = ref<string | null>(null), favorited = ref(false)
 const activityLoading = ref(false), activityError = ref<unknown>(null), saving = ref(false)
@@ -40,13 +43,13 @@ async function fetchActivity() {
 async function rate() {
   if (score.value === undefined) return
   saving.value = true; activityError.value = null
-  try { const result = (await http.put<{rating:string}>(`/me/ratings/${id.value}`, { rating: score.value })).data; savedScore.value = result.rating; ElMessage.success('评分已保存') }
+  try { const result = (await http.put<{rating:string}>(`/me/ratings/${id.value}`, { rating: score.value })).data; savedScore.value = result.rating; bumpBehavior(); ElMessage.success('评分已保存，首页推荐已按这条新行为重新计算') }
   catch (e) { activityError.value = e; ElMessage.error(errorMessage(e)) }
   finally { saving.value = false }
 }
 async function toggleFavorite() {
   saving.value = true; activityError.value = null
-  try { if (favorited.value) await http.delete(`/me/favorites/${id.value}`); else await http.put(`/me/favorites/${id.value}`); favorited.value = !favorited.value; ElMessage.success(favorited.value ? '已加入收藏' : '已取消收藏') }
+  try { if (favorited.value) await http.delete(`/me/favorites/${id.value}`); else await http.put(`/me/favorites/${id.value}`); favorited.value = !favorited.value; bumpBehavior(); ElMessage.success(favorited.value ? '已加入收藏，首页推荐已按新行为重算' : '已取消收藏，推荐依据已更新') }
   catch (e) { activityError.value = e; ElMessage.error(errorMessage(e)) }
   finally { saving.value = false }
 }

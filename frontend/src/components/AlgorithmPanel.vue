@@ -7,7 +7,7 @@ import type { AlgorithmResult, Explanation, Movie } from '../types'
 import { useEvaluation } from '../composables/useEvaluation'
 import { useExplanation } from '../composables/useExplanation'
 import { useAuth } from '../stores/auth'
-const props = withDefaults(defineProps<{ endpoint: string | null; label: string; emptySubject?: string; subject?: string }>(), { emptySubject: '登录后体验', subject: '' })
+const props = withDefaults(defineProps<{ endpoint: string | null; label: string; emptySubject?: string; subject?: string; refreshKey?: number }>(), { emptySubject: '登录后体验', subject: '', refreshKey: 0 })
 const loading = ref(false), error = ref<unknown>(null), unavailable = ref(false)
 const result = ref<AlgorithmResult | null>(null)
 const movieMap = ref<Record<string, Movie>>({})
@@ -98,6 +98,8 @@ async function load() {
   } finally { if (seq === run) loading.value = false }
 }
 watch(() => props.endpoint, load, { immediate: true })
+// 实验五：同一用户的评分/收藏变化后重新取数，保证看到的是重算结果而不是旧列表
+watch(() => props.refreshKey, (value, previous) => { if (value !== previous) void load() })
 // 换观众/换算法后，上一批解释不再适用
 watch(() => [props.endpoint, explainSubject.value], () => { explanations.value = {} })
 </script>
